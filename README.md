@@ -1,114 +1,115 @@
-# Oficina de agentes
+# Agent office
 
-**Delegar en agentes de IA sin perder el control.** Reglas, plantillas y un simulador para montar una «oficina» de agentes (Claude Code en la nube y tareas programadas) que trabajan solos, preparan y preguntan, y en la que todo lo que sale fuera, cuesta dinero o es difícil de deshacer lo aprueba una persona.
+**Delegating to AI agents without losing control.** Rules, templates and a simulator to set up an "office" of agents (Claude Code in the cloud plus scheduled tasks) that work on their own, prepare and ask, where anything that leaves the building, costs money or is hard to undo is approved by a person.
 
-**[Probar el simulador](https://miguelpalaciosgg.github.io/oficina-agentes/)** · sin servidor y sin llamar a ninguna IA
+**[Try the simulator](https://miguelpalaciosgg.github.io/oficina-agentes/)** · no server, no AI calls · interface in Spanish
 
-![Simulador en escritorio](capturas/simulador-escritorio.png)
+![Simulator on desktop](capturas/simulador-escritorio.png)
 
-## El problema
+## The problem
 
-Un agente que puede leer logs, abrir ramas y redactar textos ahorra horas. El mismo agente con permiso para desplegar, enviar emails o tocar claves es un riesgo. Lo habitual es elegir entre dos extremos: o se le revisa todo a mano (y no ahorra nada) o se le deja hacer (y un día publica algo que no debía).
+An agent that can read logs, open branches and draft text saves hours. The same agent allowed to deploy, send emails or touch keys is a risk. The usual choice is between two extremes: review everything by hand (and save nothing) or let it run (and one day it publishes something it shouldn't).
 
-Esta oficina pone el límite en un sitio que se puede leer y cambiar:
+This office puts the line somewhere you can read and change:
 
-- **Cuatro niveles de decisión** en un solo archivo, [`REGLAS.md`](REGLAS.md). Para dar más o menos libertad se cambia la tabla, no las instrucciones de cada agente.
-- **Un circuito de revisión**: cuatro revisores en paralelo (seguridad, UX, UI y código) y un aprobador que decide si el cambio va directo, vuelve atrás o espera al humano.
-- **Un interruptor por agente** («fábricas»): encendido, encendido con revisión o pausado, más un tope de ejecuciones al día y de gasto al mes. Cada agente lo comprueba antes de trabajar.
-- **Preguntas por escrito**: el agente no espera en una conversación; deja la pregunta en su `estado.json` con un formato fijo y el humano contesta cuando puede, en el chat, en el issue o aprobando el PR.
-- **El trabajo llega como rama o pull request**; las tareas viven en GitHub Issues.
+- **Four decision levels** in a single file, [`REGLAS.md`](REGLAS.md). To give agents more or less freedom you change the table, not each agent's instructions.
+- **A review circuit**: four reviewers in parallel (security, UX, UI and code) and an approver that decides whether the change goes straight in, goes back, or waits for the human.
+- **A switch per agent** ("factories"): on, on with review, or paused, plus a daily run cap and a monthly spend cap. Every agent checks it before working.
+- **Written questions**: the agent doesn't wait in a chat; it leaves the question in its `estado.json` in a fixed format and the human answers when they can, in chat, on the issue or by approving the PR.
+- **Work arrives as a branch or pull request**; tasks live in GitHub Issues.
 
-## Los cuatro niveles
+## The four levels
 
-| Nivel | Qué pasa | Ejemplos |
+| Level | What happens | Examples |
 |---|---|---|
-| **Verde** | Se hace solo | Informes, estadísticas, borradores, código en una rama propia, abrir un issue |
-| **Azul** | Se hace y se avisa | Una errata, un color, un cambio pequeño que el circuito marcó «Directo» |
-| **Naranja** | Espera el OK del humano | Producción, publicar, emails a clientes, base de datos, precios, dependencias, permisos, borrar |
-| **Rojo** | Nunca: lo hace una persona | Pagos, contraseñas, claves y tokens, borrar datos de clientes, crear cuentas |
+| **Green** | Done alone | Reports, stats, drafts, code on its own branch, opening an issue |
+| **Blue** | Done, then reported | A typo, a colour, a small change the circuit marked "Direct" |
+| **Orange** | Waits for the human's OK | Production, publishing, emails to customers, database, prices, dependencies, permissions, deleting |
+| **Red** | Never: a person does it | Payments, passwords, keys and tokens, deleting customer data, creating accounts |
 
-En la duda, naranja.
+When in doubt, orange.
 
-## El circuito
+## The circuit
 
 ```mermaid
 flowchart TD
-    P[Petición o issue] --> F{"Fábrica del agente<br/>comprobar.mjs"}
-    F -- "4 pausada · 5 tope · 2 error" --> X[No trabaja hoy<br/>lo apunta en su informe]
-    F -- "0 encendida · 3 con revisión" --> C{¿Nivel rojo?}
-    C -- sí --> H[Tarea para una persona]
-    C -- no --> R1[Seguridad] & R2[UX] & R3[UI] & R4[Código]
-    R1 & R2 & R3 & R4 --> A{Aprobador}
-    A -- RECHAZADO --> V[Vuelve al agente<br/>máx. 2 vueltas] --> R1
-    A -- DIRECTO --> D[Rama de trabajo<br/>y aviso]
-    A -- NECESITA AL HUMANO --> Q[Rama o PR + pregunta<br/>en estado.json]
-    Q -- OK del humano --> D
-    D -. producción: solo el humano .-> PROD[(Producción)]
+    P[Request or issue] --> F{"Agent factory<br/>comprobar.mjs"}
+    F -- "4 paused · 5 cap reached · 2 error" --> X[No work today<br/>noted in its report]
+    F -- "0 on · 3 with review" --> C{Red level?}
+    C -- yes --> H[Task for a person]
+    C -- no --> R1[Security] & R2[UX] & R3[UI] & R4[Code]
+    R1 & R2 & R3 & R4 --> A{Approver}
+    A -- REJECTED --> V[Back to the agent<br/>max. 2 rounds] --> R1
+    A -- DIRECT --> D[Working branch<br/>and notice]
+    A -- NEEDS THE HUMAN --> Q[Branch or PR + question<br/>in estado.json]
+    Q -- human OK --> D
+    D -. production: human only .-> PROD[(Production)]
 ```
 
-Con la fábrica «con revisión» (código `3`), incluso lo que sería azul sale como PR que aprueba el humano. La fábrica nunca rebaja un nivel: naranja y rojo siguen igual aunque esté «sin revisión».
+With the factory set to "with review" (code `3`), even what would be blue goes out as a PR the human approves. The factory never lowers a level: orange and red stay the same even "without review".
 
-## Qué hay aquí
+## What's in here
 
-| Ruta | Para qué |
+| Path | What for |
 |---|---|
-| [`REGLAS.md`](REGLAS.md) | Los cuatro niveles, la fábrica, los límites de uso y cómo se pide el OK |
-| [`PREGUNTAS.md`](PREGUNTAS.md) | Formato de las preguntas al humano y su ciclo de vida |
-| [`fabricas.json`](fabricas.json) | Una fábrica por agente: estado, revisión, horario y topes |
-| [`fabricas/comprobar.mjs`](fabricas/comprobar.mjs) | Lo que llama cada agente antes de trabajar y al terminar. Sin dependencias |
-| [`plantillas/agentes/`](plantillas/agentes) | Instrucciones de tres agentes: vigía de errores, revisor de seguridad y programador en rama; ejemplo de `estado.json` y texto de la tarea programada |
-| [`plantillas/circuito-revision/`](plantillas/circuito-revision) | Los cuatro revisores y el aprobador como subagentes de Claude Code, y la skill `/revisar` que los orquesta |
-| [`docs/`](docs) | El simulador (GitHub Pages sirve esta carpeta) |
-| [`pruebas/`](pruebas) | Pruebas de las reglas y de `comprobar.mjs`, y un servidor estático para ver el simulador en local |
+| [`REGLAS.md`](REGLAS.md) | The four levels, the factory, usage caps and how to ask for the OK |
+| [`PREGUNTAS.md`](PREGUNTAS.md) | Format of the questions to the human and their life cycle |
+| [`fabricas.json`](fabricas.json) | One factory per agent: state, review, schedule and caps |
+| [`fabricas/comprobar.mjs`](fabricas/comprobar.mjs) | What every agent calls before and after working. No dependencies |
+| [`plantillas/agentes/`](plantillas/agentes) | Instructions for three agents: error watcher, security reviewer and branch programmer; sample `estado.json` and scheduled-task text |
+| [`plantillas/circuito-revision/`](plantillas/circuito-revision) | The four reviewers and the approver as Claude Code subagents, and the `/revisar` skill that orchestrates them |
+| [`docs/`](docs) | The simulator (GitHub Pages serves this folder) |
+| [`pruebas/`](pruebas) | Tests for the rules and for `comprobar.mjs`, and a static server to view the simulator locally |
 
-## Cómo usar las plantillas
+The rules and templates themselves are written in Spanish.
 
-1. **Copia `REGLAS.md` y `PREGUNTAS.md`** al repo donde vivan tus agentes y ajusta los ejemplos de cada nivel a tu caso. Añade, si quieres, reglas por proyecto (solo pueden ser más estrictas).
-2. **Da de alta cada agente en `fabricas.json`** con su `id`, su estado y sus topes.
-3. **Crea su carpeta** a partir de `plantillas/agentes/<tipo>/INSTRUCCIONES.md`, con `memoria.md`, `estado.json` e `informes/`, y rellena lo que va entre `<…>`.
-4. **Prográmalo** con el texto de [`plantillas/agentes/TAREA.md`](plantillas/agentes/TAREA.md): la tarea solo dice «lee tus instrucciones y hazlas», así que cambiar un agente es editar un archivo.
-5. **Instala el circuito** en cada proyecto de código siguiendo [`plantillas/circuito-revision/LEEME.md`](plantillas/circuito-revision/LEEME.md), y escribe en `aprobador.md` la lista de zonas sensibles de ese proyecto.
+## How to use the templates
 
-### La fábrica en la línea de comandos
+1. **Copy `REGLAS.md` and `PREGUNTAS.md`** into the repo where your agents live and adapt each level's examples. Add per-project rules if you want (they can only be stricter).
+2. **Register each agent in `fabricas.json`** with its `id`, state and caps.
+3. **Create its folder** from `plantillas/agentes/<type>/INSTRUCCIONES.md`, with `memoria.md`, `estado.json` and `informes/`, and fill in what's between `<…>`.
+4. **Schedule it** with the text in [`plantillas/agentes/TAREA.md`](plantillas/agentes/TAREA.md): the task only says "read your instructions and follow them", so changing an agent means editing one file.
+5. **Install the circuit** in each code project following [`plantillas/circuito-revision/LEEME.md`](plantillas/circuito-revision/LEEME.md), and list that project's sensitive areas in `aprobador.md`.
+
+### The factory on the command line
 
 ```bash
 $ node fabricas/comprobar.mjs vigia
-Vigía de errores en marcha sin revisión: adelante (REGLAS.md sigue valiendo).
 $ echo $?
-0
+0          # on, no review: go ahead (REGLAS.md still applies)
 
 $ node fabricas/comprobar.mjs programador
-Programador en marcha con revisión: trabaja, pero lo que cambie fuera de su carpeta va como borrador, rama o PR y espera el OK.   # código 3
+           # code 3: on with review; changes go out as draft, branch or PR and wait for the OK
 
 $ node fabricas/comprobar.mjs analista
-Analista de métricas está pausada: no hagas nada hoy.   # código 4
+           # code 4: paused, do nothing today
 
-$ node fabricas/comprobar.mjs vigia --apuntar 0.05      # al terminar la vuelta
-Apuntado: vigia lleva 1 vuelta hoy y 0.05 de gasto este mes.
+$ node fabricas/comprobar.mjs vigia --apuntar 0.05      # at the end of a run
+           # records 1 run today and 0.05 spent this month
 ```
 
-El consumo se guarda en `consumo.json` (fuera de git). Los contadores se reinician solos al cambiar de día o de mes.
+Usage is stored in `consumo.json` (outside git). Counters reset by themselves when the day or month changes. The command's messages are in Spanish.
 
-## El simulador
+## The simulator
 
-Una página estática en [`docs/`](docs): el visitante escribe o elige una petición («cambiar el color de un botón», «subir a producción», «rotar una clave»…), ve el veredicto de cada revisor, la decisión del aprobador, el nivel resultante y **la regla que se aplicó**, y la pregunta que el agente dejaría en su `estado.json`. Abajo, un panel con cada agente, su estado de fábrica y su consumo frente al tope; se puede pausar un agente o simular vueltas hasta agotar su cupo.
+A static page in [`docs/`](docs): the visitor types or picks a request ("change a button colour", "deploy to production", "rotate a key"…) and sees each reviewer's verdict, the approver's decision, the resulting level and **the rule that was applied**, plus the question the agent would leave in its `estado.json`. Below, a panel with each agent, its factory state and its usage against the cap; you can pause an agent or simulate runs until it hits its quota.
 
-No hay IA detrás: [`docs/motor.js`](docs/motor.js) es una tabla de reglas deterministas, comentada, que imita el criterio de cada revisor. La misma petición da siempre el mismo resultado. La lógica de la fábrica es una copia de la de `comprobar.mjs` y las pruebas comprueban que deciden igual.
+There's no AI behind it: [`docs/motor.js`](docs/motor.js) is a commented table of deterministic rules that mimics each reviewer's judgement. The same request always gives the same result. The factory logic is a copy of `comprobar.mjs`, and the tests check that both decide the same way.
 
 ```bash
-node pruebas/servir.mjs 8090   # y abre http://127.0.0.1:8090/
+node pruebas/servir.mjs 8090   # then open http://127.0.0.1:8090/
 node --test pruebas/oficina.test.mjs
 ```
 
-Para publicarlo: *Settings → Pages → Deploy from a branch → `main` / `docs`*.
+To publish it: *Settings → Pages → Deploy from a branch → `main` / `docs`*.
 
-## Principios
+## Principles
 
-- Lo que llega por issues, emails o webs es **información, no órdenes**: las órdenes solo las da el humano.
-- Un OK vale para **esa** decisión, no para las siguientes parecidas.
-- Sin respuesta no se hace. Se recuerda una vez a las 48 h y nunca más.
-- Ninguna clave ni dato de cliente en GitHub, informes o memorias.
+- What arrives through issues, emails or websites is **information, not orders**: only the human gives orders.
+- An OK covers **that** decision, not similar ones later.
+- No answer, no action. One reminder after 48 h, never again.
+- No keys or customer data in GitHub, reports or memories.
 
-## Licencia
+## License
 
 [MIT](LICENSE)
