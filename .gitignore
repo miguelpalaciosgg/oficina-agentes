@@ -1,0 +1,9 @@
+# Consumo real de cada agente: lo escribe comprobar.mjs --apuntar
+consumo.json
+consumo.json.tmp
+node_modules/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db

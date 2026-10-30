@@ -1,0 +1,14 @@
+{
+  "name": "oficina-agentes",
+  "version": "1.0.0",
+  "description": "Reglas, plantillas y simulador para una oficina de agentes de IA con aprobación humana",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test pruebas/oficina.test.mjs",
+    "comprobar": "node fabricas/comprobar.mjs",
+    "simulador": "node pruebas/servir.mjs"
+  }
+}

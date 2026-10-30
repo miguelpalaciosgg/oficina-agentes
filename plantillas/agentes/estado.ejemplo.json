@@ -1,0 +1,24 @@
+{
+  "id": "vigia",
+  "nombre": "Vigía de errores",
+  "rol": "Vigila los trabajos programados",
+  "activo": true,
+  "frecuencia": "Cada día a las 8:00",
+  "estado": "aviso",
+  "ultimaVez": "2026-01-15T08:04:00+01:00",
+  "ultimo": "47 de 48 ejecuciones bien; el error «timeout al renderizar» sale 6 veces (nuevo).",
+  "ultimoInforme": "informes/2026-01-15.md",
+  "tareas": [
+    { "texto": "Comprobar mañana si el timeout sigue después del cambio de ayer", "estado": "pendiente" }
+  ],
+  "preguntas": [
+    {
+      "id": "issue-timeout-render",
+      "fecha": "2026-01-15T08:04:00+01:00",
+      "texto": "[demo] El Vigía abre el issue «timeout al renderizar en el worker» — sale 6 veces en 24 h desde ayer — si no, seguirá apareciendo en cada informe sin nadie asignado.",
+      "opciones": ["Sí", "No"],
+      "respuesta": null,
+      "atendida": false
+    }
+  ]
+}
