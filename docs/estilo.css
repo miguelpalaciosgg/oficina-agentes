@@ -1,5 +1,5 @@
 /* estilo.css — Simulador de la oficina de agentes. Colores como variables; tema claro y oscuro
-   (sistema o botón, que guarda data-theme en <html>). Pensado primero para 375 px. */
+   (sistema o botón, que guarda data-theme en <html>) y selector de idioma EN / ES. Pensado primero para 375 px. */
 :root {
   --fondo: #f6f7f9;
   --superficie: #ffffff;
@@ -62,6 +62,13 @@ button, select, input { font: inherit; color: inherit; }
 }
 .boton-tema svg { width: 18px; height: 18px; fill: currentColor; }
 .boton-tema:hover, .boton-secundario:hover { background: var(--superficie-2); }
+.cabecera-acciones { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* Selector de idioma EN / ES: dos botones pegados; el elegido lleva aria-pressed="true". */
+.idiomas { display: inline-flex; border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; background: var(--superficie); }
+.boton-idioma { min-height: 40px; min-width: 44px; padding: 0 10px; border: 0; background: transparent; cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--texto-suave); }
+.boton-idioma + .boton-idioma { border-left: 1px solid var(--borde); }
+.boton-idioma:hover { background: var(--superficie-2); }
+.boton-idioma[aria-pressed="true"] { background: var(--acento); color: var(--acento-texto); }
 .boton-principal {
   min-height: 44px; padding: 0 20px; border: 0; border-radius: 10px; cursor: pointer;
   background: var(--acento); color: var(--acento-texto); font-weight: 600;

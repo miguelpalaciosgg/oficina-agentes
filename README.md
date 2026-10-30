@@ -2,7 +2,7 @@
 
 **Delegating to AI agents without losing control.** Rules, templates and a simulator to set up an "office" of agents (Claude Code in the cloud plus scheduled tasks) that work on their own, prepare and ask, where anything that leaves the building, costs money or is hard to undo is approved by a person.
 
-**[Try the simulator](https://miguelpalaciosgg.github.io/oficina-agentes/)** · no server, no AI calls · interface in Spanish
+**[Try the simulator](https://miguelpalaciosgg.github.io/oficina-agentes/)** · no server, no AI calls · interface in English and Spanish
 
 ![Simulator on desktop](capturas/simulador-escritorio.png)
 
@@ -88,13 +88,13 @@ $ node fabricas/comprobar.mjs vigia --apuntar 0.05      # at the end of a run
            # records 1 run today and 0.05 spent this month
 ```
 
-Usage is stored in `consumo.json` (outside git). Counters reset by themselves when the day or month changes. The command's messages are in Spanish.
+Usage is stored in `consumo.json` (outside git). Counters reset by themselves when the day or month changes.
 
 ## The simulator
 
 A static page in [`docs/`](docs): the visitor types or picks a request ("change a button colour", "deploy to production", "rotate a key"…) and sees each reviewer's verdict, the approver's decision, the resulting level and **the rule that was applied**, plus the question the agent would leave in its `estado.json`. Below, a panel with each agent, its factory state and its usage against the cap; you can pause an agent or simulate runs until it hits its quota.
 
-There's no AI behind it: [`docs/motor.js`](docs/motor.js) is a commented table of deterministic rules that mimics each reviewer's judgement. The same request always gives the same result. The factory logic is a copy of `comprobar.mjs`, and the tests check that both decide the same way.
+There's no AI behind it: [`docs/motor.js`](docs/motor.js) is a commented table of deterministic rules that mimics each reviewer's judgement and recognises requests in English and Spanish. The page opens in English; the EN / ES button (or `?lang=es`) switches language, and the explanation and the JSON question follow it. The same request always gives the same result. The factory logic is a copy of `comprobar.mjs`, and the tests check that both decide the same way.
 
 ```bash
 node pruebas/servir.mjs 8090   # then open http://127.0.0.1:8090/

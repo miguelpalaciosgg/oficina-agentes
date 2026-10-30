@@ -5,7 +5,7 @@
 //   node fabricas/comprobar.mjs <id>                    ¿Puedo trabajar?
 //   node fabricas/comprobar.mjs <id> --apuntar <coste>  Apunta una vuelta hecha (al terminar)
 //
-// Imprime una línea para el agente y sale con un código:
+// Imprime una línea para el agente (en inglés; el simulador la tiene también en español) y sale con un código:
 //   0 = adelante, sin revisión
 //   3 = adelante, pero lo que cambie fuera de su carpeta va como borrador, rama o PR
 //   4 = fábrica pausada o por montar: no hagas nada
@@ -39,23 +39,23 @@ export function consumoVigente(c = {}, hoy) {
 
 // Decisión pura: sin archivos, para poder probarla y reutilizarla.
 export function decidir(f, consumo, hoy) {
-  if (!f) return { codigo: 2, trabajar: false, mensaje: 'No existe esa fábrica. No hagas nada y pregúntaselo al humano.' }
+  if (!f) return { codigo: 2, trabajar: false, mensaje: "That factory doesn't exist. Do nothing and ask the human." }
   if (f.estado !== 'en_marcha') {
-    const como = f.estado === 'pausada' ? 'está pausada' : 'está por montar'
-    return { codigo: 4, trabajar: false, mensaje: `${f.nombre} ${como}: no hagas nada hoy.` }
+    const como = f.estado === 'pausada' ? 'is paused' : 'is not set up yet'
+    return { codigo: 4, trabajar: false, mensaje: `${f.nombre} ${como}: do nothing today.` }
   }
   const usado = consumoVigente(consumo, hoy)
   const lim = f.limites || {}
   if (lim.ejecucionesDia != null && usado.ejecucionesDia >= lim.ejecucionesDia) {
-    return { codigo: 5, trabajar: false, mensaje: `${f.nombre} ya ha hecho ${usado.ejecucionesDia} de ${lim.ejecucionesDia} vueltas hoy: espera a mañana.` }
+    return { codigo: 5, trabajar: false, mensaje: `${f.nombre} has already done ${usado.ejecucionesDia} of ${lim.ejecucionesDia} runs today: wait until tomorrow.` }
   }
   if (lim.gastoMes != null && usado.gastoMes + (f.costeVuelta || 0) > lim.gastoMes) {
-    return { codigo: 5, trabajar: false, mensaje: `${f.nombre} llevaría ${(usado.gastoMes + (f.costeVuelta || 0)).toFixed(2)} de ${lim.gastoMes} de gasto este mes: no trabaja hasta el mes que viene o hasta que el humano suba el tope.` }
+    return { codigo: 5, trabajar: false, mensaje: `${f.nombre} would reach ${(usado.gastoMes + (f.costeVuelta || 0)).toFixed(2)} of ${lim.gastoMes} spent this month: no work until next month or until the human raises the cap.` }
   }
   if (f.revision === 'humano') {
-    return { codigo: 3, trabajar: true, revision: true, mensaje: `${f.nombre} en marcha con revisión: trabaja, pero lo que cambie fuera de su carpeta va como borrador, rama o PR y espera el OK.` }
+    return { codigo: 3, trabajar: true, revision: true, mensaje: `${f.nombre} on with review: it works, but anything it changes outside its folder goes out as a draft, branch or PR and waits for the OK.` }
   }
-  return { codigo: 0, trabajar: true, revision: false, mensaje: `${f.nombre} en marcha sin revisión: adelante (REGLAS.md sigue valiendo).` }
+  return { codigo: 0, trabajar: true, revision: false, mensaje: `${f.nombre} on, no review: go ahead (REGLAS.md still applies).` }
 }
 
 function leerJSON(ruta, siNoExiste) {
@@ -69,10 +69,10 @@ export function comprobar(id, { rutaFabricas = RUTA_FABRICAS, rutaConsumo = RUTA
     fabricas = leerJSON(rutaFabricas).fabricas
     consumo = leerJSON(rutaConsumo, {})
   } catch (e) {
-    return { codigo: 2, trabajar: false, mensaje: `No se puede leer la configuración (${e.message}). No hagas nada.` }
+    return { codigo: 2, trabajar: false, mensaje: `Can't read the configuration (${e.message}). Do nothing.` }
   }
   const f = fabricas.find(x => x.id === id)
-  if (!f) return { codigo: 2, trabajar: false, mensaje: `No hay ninguna fábrica «${id}» en fabricas.json. No hagas nada y pregúntaselo al humano.` }
+  if (!f) return { codigo: 2, trabajar: false, mensaje: `There is no factory "${id}" in fabricas.json. Do nothing and ask the human.` }
   return { ...decidir(f, consumo[id], hoy), fabrica: f }
 }
 
@@ -93,12 +93,12 @@ export function apuntar(id, coste, { rutaConsumo = RUTA_CONSUMO, hoy = hoyLocal(
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const [id, opcion, valor] = process.argv.slice(2)
-  if (!id) { console.error('Uso: node fabricas/comprobar.mjs <id> [--apuntar <coste>]'); process.exit(2) }
+  if (!id) { console.error('Usage: node fabricas/comprobar.mjs <id> [--apuntar <cost>]'); process.exit(2) }
   if (opcion === '--apuntar') {
     const coste = Number(valor)
-    if (!Number.isFinite(coste) || coste < 0) { console.error('El coste tiene que ser un número >= 0'); process.exit(2) }
+    if (!Number.isFinite(coste) || coste < 0) { console.error('The cost must be a number >= 0'); process.exit(2) }
     const c = apuntar(id, coste)
-    console.log(`Apuntado: ${id} lleva ${c.ejecucionesDia} ${c.ejecucionesDia === 1 ? 'vuelta' : 'vueltas'} hoy y ${c.gastoMes} de gasto este mes.`)
+    console.log(`Recorded: ${id} has ${c.ejecucionesDia} ${c.ejecucionesDia === 1 ? 'run' : 'runs'} today and ${c.gastoMes} spent this month.`)
     process.exit(0)
   }
   const r = comprobar(id)

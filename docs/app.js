@@ -1,27 +1,18 @@
 // app.js — Interfaz del simulador. Pinta lo que calcula motor.js; aquí no hay reglas de decisión.
 // Todo se construye con textContent (nunca innerHTML con lo que escribe el visitante).
+// Bilingüe: inglés por defecto, español con ?lang=es o con el selector EN/ES (se guarda en localStorage).
 import { simular, decidirFabrica, preguntaPara, NIVELES } from './motor.js'
+import { TEXTOS, rellenar } from './textos.js'
 
-// Las mismas fábricas que fabricas.json de la raíz (GitHub Pages solo sirve docs/, por eso van copiadas).
+// Las mismas fábricas que fabricas.json de la raíz (GitHub Pages solo sirve docs/, por eso van copiadas),
+// con el nombre y el horario en los dos idiomas.
 const FABRICAS = [
-  { id: 'vigia', nombre: 'Vigía de errores', horario: 'Cada día a las 8:00', estado: 'en_marcha', revision: 'sin_revision', limites: { ejecucionesDia: 2, gastoMes: 3 }, costeVuelta: 0.05 },
-  { id: 'seguridad', nombre: 'Revisor de seguridad', horario: 'Los lunes a las 9:00', estado: 'en_marcha', revision: 'sin_revision', limites: { ejecucionesDia: 1, gastoMes: 2 }, costeVuelta: 0.2 },
-  { id: 'web', nombre: 'Mantenimiento web', horario: 'Cuando hay issues pequeños', estado: 'en_marcha', revision: 'sin_revision', limites: { ejecucionesDia: 4, gastoMes: 5 }, costeVuelta: 0.25 },
-  { id: 'programador', nombre: 'Programador', horario: 'Cada día a las 9:30 y cuando hay cola', estado: 'en_marcha', revision: 'humano', limites: { ejecucionesDia: 3, gastoMes: 10 }, costeVuelta: 0.6 },
-  { id: 'redactor', nombre: 'Redactor de borradores', horario: 'Martes y jueves', estado: 'en_marcha', revision: 'humano', limites: { ejecucionesDia: 1, gastoMes: 4 }, costeVuelta: 0.3 },
-  { id: 'analista', nombre: 'Analista de métricas', horario: 'Los viernes', estado: 'pausada', revision: 'sin_revision', limites: { ejecucionesDia: 1, gastoMes: 2 }, costeVuelta: 0.15 }
-]
-
-const EJEMPLOS = [
-  'Cambiar el color de un botón',
-  'Corregir una errata en la portada',
-  'Hacer el informe semanal de errores',
-  'Subir a producción la versión nueva',
-  'Enviar un email a todos los clientes',
-  'Rotar una clave de la API',
-  'Actualizar una dependencia',
-  'Borrar los datos de un cliente',
-  'Cambiar los precios'
+  { id: 'vigia', nombre: { en: 'Error watcher', es: 'Vigía de errores' }, horario: { en: 'Every day at 8:00', es: 'Cada día a las 8:00' }, estado: 'en_marcha', revision: 'sin_revision', limites: { ejecucionesDia: 2, gastoMes: 3 }, costeVuelta: 0.05 },
+  { id: 'seguridad', nombre: { en: 'Security reviewer', es: 'Revisor de seguridad' }, horario: { en: 'Mondays at 9:00', es: 'Los lunes a las 9:00' }, estado: 'en_marcha', revision: 'sin_revision', limites: { ejecucionesDia: 1, gastoMes: 2 }, costeVuelta: 0.2 },
+  { id: 'web', nombre: { en: 'Website maintenance', es: 'Mantenimiento web' }, horario: { en: 'When there are small issues', es: 'Cuando hay issues pequeños' }, estado: 'en_marcha', revision: 'sin_revision', limites: { ejecucionesDia: 4, gastoMes: 5 }, costeVuelta: 0.25 },
+  { id: 'programador', nombre: { en: 'Programmer', es: 'Programador' }, horario: { en: 'Every day at 9:30 and when there is a queue', es: 'Cada día a las 9:30 y cuando hay cola' }, estado: 'en_marcha', revision: 'humano', limites: { ejecucionesDia: 3, gastoMes: 10 }, costeVuelta: 0.6 },
+  { id: 'redactor', nombre: { en: 'Draft writer', es: 'Redactor de borradores' }, horario: { en: 'Tuesdays and Thursdays', es: 'Martes y jueves' }, estado: 'en_marcha', revision: 'humano', limites: { ejecucionesDia: 1, gastoMes: 4 }, costeVuelta: 0.3 },
+  { id: 'analista', nombre: { en: 'Metrics analyst', es: 'Analista de métricas' }, horario: { en: 'Fridays', es: 'Los viernes' }, estado: 'pausada', revision: 'sin_revision', limites: { ejecucionesDia: 1, gastoMes: 2 }, costeVuelta: 0.15 }
 ]
 
 const hoyLocal = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -39,7 +30,26 @@ function consumoInicial() {
   }
 }
 let consumo = consumoInicial()
+// Última comprobación de cada agente en el panel; se guarda el código y se vuelve a pedir el mensaje
+// al cambiar de idioma.
 const ultimaLinea = {}
+
+// ---------- Idioma ----------
+// ?lang=es o ?lang=en manda; si no, lo guardado; si no, inglés.
+function idiomaInicial() {
+  try {
+    const q = new URLSearchParams(location.search).get('lang')
+    if (q === 'es' || q === 'en') return q
+  } catch { /* sin URL */ }
+  try {
+    const g = localStorage.getItem('idioma')
+    if (g === 'es' || g === 'en') return g
+  } catch { /* sin almacenamiento */ }
+  return 'en'
+}
+let lang = idiomaInicial()
+const T = () => TEXTOS[lang]
+const nombreDe = f => f.nombre[lang]
 
 // Ayudante para crear nodos: el('p', { class: 'x' }, 'texto', otroNodo)
 function el(tag, attrs = {}, ...hijos) {
@@ -54,7 +64,47 @@ function el(tag, attrs = {}, ...hijos) {
   return n
 }
 const $ = id => document.getElementById(id)
-const claseVeredicto = v => 'veredicto v-' + v.toLowerCase().replace(/\s+/g, '-')
+// El veredicto es un código (ok, con-avisos, bloquea, no-aplica) que también es la clase CSS.
+const claseVeredicto = v => 'veredicto v-' + v
+// Texto con un {hueco} que es un nodo (por ejemplo, un <code>).
+function conNodo(plantilla, clave, nodo) {
+  const [antes, despues] = plantilla.split(`{${clave}}`)
+  return [antes, nodo, despues ?? '']
+}
+
+// Textos fijos de la página según el idioma.
+function pintarTextos() {
+  const t = T()
+  document.documentElement.lang = lang
+  document.title = t.titulo
+  document.querySelector('meta[name="description"]').setAttribute('content', t.descripcion)
+  for (const n of document.querySelectorAll('[data-t]')) n.textContent = t[n.dataset.t]
+  for (const n of document.querySelectorAll('[data-t-placeholder]')) n.setAttribute('placeholder', t[n.dataset.tPlaceholder])
+  for (const n of document.querySelectorAll('[data-t-aria-label]')) n.setAttribute('aria-label', t[n.dataset.tAriaLabel])
+  for (const b of document.querySelectorAll('[data-idioma]')) b.setAttribute('aria-pressed', String(b.dataset.idioma === lang))
+  $('niveles').replaceChildren(...Object.entries(NIVELES).map(([id, n]) =>
+    el('li', { class: 'nivel-' + id }, el('strong', {}, n.nombre[lang]), el('span', {}, n.accion[lang]))))
+  $('ejemplos').replaceChildren(...t.ejemplos.map(e =>
+    el('button', { type: 'button', class: 'chip', onclick: () => { $('peticion').value = e; ejecutar() } }, e)))
+  $('nota-panel').replaceChildren(...conNodo(t.notaPanel, 'cmd', el('code', {}, 'node fabricas/comprobar.mjs <id>')))
+  $('pie').replaceChildren(...conNodo(t.pie, 'repo', el('code', {}, 'oficina-agentes')))
+}
+
+function cambiarIdioma(nuevo) {
+  if (nuevo === lang) return
+  lang = nuevo
+  try { localStorage.setItem('idioma', lang) } catch { /* da igual */ }
+  // Si la página llegó con ?lang=, se quita para que no contradiga la elección.
+  try {
+    const u = new URL(location.href)
+    if (u.searchParams.has('lang')) { u.searchParams.delete('lang'); history.replaceState(null, '', u) }
+  } catch { /* sin historial */ }
+  pintarTextos()
+  pintarSelectorAgente()
+  pintarPanel()
+  if ($('peticion').value.trim()) ejecutar()
+}
+for (const b of document.querySelectorAll('[data-idioma]')) b.addEventListener('click', () => cambiarIdioma(b.dataset.idioma))
 
 // ---------- Tema ----------
 function aplicarTema(t) {
@@ -71,12 +121,9 @@ $('tema').addEventListener('click', () => {
 })
 
 // ---------- Formulario ----------
-for (const e of EJEMPLOS) {
-  $('ejemplos').append(el('button', { type: 'button', class: 'chip', onclick: () => { $('peticion').value = e; ejecutar() } }, e))
-}
 function pintarSelectorAgente() {
   const sel = $('agente'), antes = sel.value
-  sel.replaceChildren(...FABRICAS.map(f => el('option', { value: f.id }, f.nombre)))
+  sel.replaceChildren(...FABRICAS.map(f => el('option', { value: f.id }, nombreDe(f))))
   sel.value = antes || 'web'
 }
 $('form').addEventListener('submit', ev => { ev.preventDefault(); ejecutar() })
@@ -87,13 +134,14 @@ function ejecutar() {
   const peticion = $('peticion').value.trim()
   if (!peticion) { $('peticion').focus(); return }
   const fabrica = FABRICAS.find(f => f.id === $('agente').value)
-  const r = simular(peticion, { fabrica, consumo: consumo[fabrica.id], hoy: HOY, pruebas: $('pruebas').checked, grande: $('grande').checked })
+  const r = simular(peticion, { fabrica, consumo: consumo[fabrica.id], hoy: HOY, pruebas: $('pruebas').checked, grande: $('grande').checked, lang })
   pintarCircuito(peticion, fabrica, r)
   // El enlace de la página guarda la petición para poder compartir el resultado.
-  try { history.replaceState(null, '', '#p=' + encodeURIComponent(peticion)) } catch { /* sin historial */ }
+  try { history.replaceState(null, '', location.pathname + location.search + '#p=' + encodeURIComponent(peticion)) } catch { /* sin historial */ }
 }
 
 function pintarCircuito(peticion, fabrica, r) {
+  const t = T(), nombre = nombreDe(fabrica)
   const caja = $('circuito')
   caja.classList.remove('vacio')
   const etapas = []
@@ -102,13 +150,13 @@ function pintarCircuito(peticion, fabrica, r) {
 
   // 0. La fábrica del agente
   etapas.push(anim(el('div', { class: 'etapa' },
-    el('p', { class: 'etapa-titulo' }, `Fábrica de ${fabrica.nombre}`),
-    el('p', { class: 'linea' }, el('b', {}, `código ${r.fabrica.codigo}`), ' · ', r.fabrica.mensaje || 'Adelante.'))))
+    el('p', { class: 'etapa-titulo' }, rellenar(t.fabricaDe, { n: nombre })),
+    el('p', { class: 'linea' }, el('b', {}, rellenar(t.codigo, { c: r.fabrica.codigo })), ' · ', r.fabrica.mensaje || t.adelante))))
 
   if (r.parado) {
     etapas.push(anim(el('div', { class: 'resultado parado' },
-      el('p', { class: 'grande' }, 'No trabaja hoy'),
-      el('p', { class: 'regla' }, 'Regla aplicada: REGLAS.md, «Antes de trabajar: la fábrica». Con código 4 o 5 el agente no hace nada, apunta esta línea en su informe y termina. Cambia su estado en el panel de agentes.'))))
+      el('p', { class: 'grande' }, t.noTrabaja),
+      el('p', { class: 'regla' }, t.reglaParado))))
     caja.replaceChildren(...etapas)
     return
   }
@@ -116,48 +164,42 @@ function pintarCircuito(peticion, fabrica, r) {
   const c = r.clasificacion
   // 1. Petición y señales reconocidas
   etapas.push(anim(el('div', { class: 'etapa' },
-    el('p', { class: 'etapa-titulo' }, 'Petición'),
+    el('p', { class: 'etapa-titulo' }, t.etapaPeticion),
     el('div', { class: 'peticion-eco' }, peticion),
-    el('div', { class: 'senales', 'aria-label': 'Qué se ha reconocido' },
+    el('div', { class: 'senales', 'aria-label': t.reconocidoAria },
       c.senales.length
-        ? c.senales.map(s => el('span', { class: `senal nivel-${s.nivel}` }, `${s.que} · ${NIVELES[s.nivel].nombre.toLowerCase()}`))
-        : el('span', { class: 'senal' }, 'nada reconocido')))))
+        ? c.senales.map(s => el('span', { class: `senal nivel-${s.nivel}` }, `${s.que[lang]} · ${NIVELES[s.nivel].nombre[lang].toLowerCase()}`))
+        : el('span', { class: 'senal' }, t.nadaReconocido)))))
   etapas.push(el('div', { class: 'flecha', 'aria-hidden': 'true' }, '↓'))
 
   // 2. Cuatro revisores en paralelo
   etapas.push(el('div', { class: 'etapa' },
-    el('p', { class: 'etapa-titulo' }, 'Revisores, en paralelo'),
+    el('p', { class: 'etapa-titulo' }, t.revisores),
     el('div', { class: 'revisores' }, r.veredictos.map(v => anim(el('article', { class: 'tarjeta' },
       el('h3', {}, v.nombre),
-      el('span', { class: claseVeredicto(v.veredicto) }, v.veredicto),
+      el('span', { class: claseVeredicto(v.veredicto) }, v.veredictoTexto),
       el('p', {}, v.motivo)))))))
   etapas.push(el('div', { class: 'flecha', 'aria-hidden': 'true' }, '↓'))
 
   // 3. Aprobador
   const res = r.resultado
   etapas.push(anim(el('div', { class: 'etapa' },
-    el('p', { class: 'etapa-titulo' }, 'Aprobador'),
+    el('p', { class: 'etapa-titulo' }, t.aprobador),
     el('div', { class: 'aprobador' },
-      el('div', { class: 'decision' }, res.decision),
+      el('div', { class: 'decision' }, res.decisionTexto),
       res.avisos.length ? el('ul', {}, res.avisos.map(a => el('li', {}, `${a.nombre}: ${a.motivo}`))) : null))))
   etapas.push(el('div', { class: 'flecha', 'aria-hidden': 'true' }, '↓'))
 
   // 4. Nivel resultante y regla
   const nivel = NIVELES[res.nivel]
-  const sub = {
-    'SE HACE SOLO': `${fabrica.nombre} lo hace sin preguntar y lo cuenta en su informe.`,
-    'DIRECTO': `${fabrica.nombre} lo integra en la rama de trabajo y avisa. Producción sigue siendo cosa del humano.`,
-    'NECESITA AL HUMANO': `${fabrica.nombre} lo deja preparado en una rama o PR y pregunta. Sin respuesta, no se hace.`,
-    'RECHAZADO': `Vuelve a ${fabrica.nombre} con la lista de arreglos y repite el circuito.`,
-    'FUERA DEL CIRCUITO': 'Ningún agente lo hace. Queda como tarea para una persona.'
-  }[res.decision]
-  const pregunta = preguntaPara(peticion, fabrica.nombre, res, new Date().toISOString().slice(0, 19) + 'Z')
+  const sub = rellenar(t.sub[res.decision], { n: nombre })
+  const pregunta = preguntaPara(peticion, nombre, res, new Date().toISOString().slice(0, 19) + 'Z', lang)
   etapas.push(anim(el('div', { class: `resultado nivel-${res.nivel}` },
-    el('p', { class: 'grande' }, res.decision === 'RECHAZADO' ? 'Rechazado: vuelve atrás' : `${nivel.nombre} · ${nivel.accion}`),
+    el('p', { class: 'grande' }, res.decision === 'rechazado' ? t.rechazadoGrande : `${nivel.nombre[lang]} · ${nivel.accion[lang]}`),
     el('p', { class: 'sub' }, sub),
-    el('p', { class: 'regla' }, el('strong', {}, 'Regla aplicada: '), res.regla),
+    el('p', { class: 'regla' }, el('strong', {}, t.reglaAplicada), res.regla),
     pregunta ? el('details', { class: 'pregunta' },
-      el('summary', {}, 'Pregunta que deja en su estado.json'),
+      el('summary', {}, t.preguntaResumen),
       el('pre', {}, JSON.stringify(pregunta, null, 2))) : null)))
 
   caja.replaceChildren(...etapas)
@@ -165,52 +207,57 @@ function pintarCircuito(peticion, fabrica, r) {
 
 // ---------- Panel de agentes ----------
 const ESTADOS = [
-  { valor: 'en_marcha|sin_revision', texto: 'Encendido, sin revisión' },
-  { valor: 'en_marcha|humano', texto: 'Encendido, con revisión' },
-  { valor: 'pausada|sin_revision', texto: 'Pausado' }
+  { valor: 'en_marcha|sin_revision', clave: 'marcha' },
+  { valor: 'en_marcha|humano', clave: 'revision' },
+  { valor: 'pausada|sin_revision', clave: 'pausado' }
 ]
 
 function medidor(etiqueta, usado, tope, fmt = x => x) {
   const pct = tope ? Math.min(100, (usado / tope) * 100) : 0
   const clase = pct >= 100 ? 'lleno' : pct >= 75 ? 'medio' : ''
   return el('div', { class: 'medidor' },
-    el('div', { class: 'medidor-fila' }, el('span', {}, etiqueta), el('span', {}, `${fmt(usado)} de ${fmt(tope)}`)),
+    el('div', { class: 'medidor-fila' }, el('span', {}, etiqueta), el('span', {}, rellenar(T().deTope, { u: fmt(usado), t: fmt(tope) }))),
     el('div', { class: 'barra', role: 'progressbar', 'aria-label': etiqueta, 'aria-valuemin': '0', 'aria-valuemax': String(tope), 'aria-valuenow': String(usado) },
       el('i', { class: clase, style: `width:${pct}%` })))
 }
 
 function pintarPanel() {
-  const euros = x => x.toFixed(2).replace('.', ',') + ' €'
+  const t = T()
   $('panel').replaceChildren(...FABRICAS.map(f => {
-    const d = decidirFabrica(f, consumo[f.id], HOY)
+    const nombre = nombreDe(f)
+    const d = decidirFabrica(f, consumo[f.id], HOY, lang)
     const c = consumo[f.id] || {}
-    const etiqueta = d.codigo === 4 ? ['Pausado', 'e-pausada'] : d.codigo === 5 ? ['Tope alcanzado', 'e-tope']
-      : d.codigo === 3 ? ['Con revisión', 'e-revision'] : ['Encendido', 'e-marcha']
-    const sel = el('select', { 'aria-label': `Estado de ${f.nombre}`, onchange: ev => {
+    const etiqueta = d.codigo === 4 ? [t.etiquetas.pausado, 'e-pausada'] : d.codigo === 5 ? [t.etiquetas.tope, 'e-tope']
+      : d.codigo === 3 ? [t.etiquetas.revision, 'e-revision'] : [t.etiquetas.marcha, 'e-marcha']
+    const sel = el('select', { 'aria-label': rellenar(t.estadoDe, { n: nombre }), onchange: ev => {
       const [estado, revision] = ev.target.value.split('|'); f.estado = estado; f.revision = revision
       ultimaLinea[f.id] = null; pintarPanel(); if ($('peticion').value.trim()) ejecutar()
-    } }, ESTADOS.map(e => el('option', { value: e.valor }, e.texto)))
+    } }, ESTADOS.map(e => el('option', { value: e.valor }, t.estados[e.clave])))
     sel.value = `${f.estado}|${f.estado === 'pausada' ? 'sin_revision' : f.revision}`
+    // La línea de la última vuelta se guarda tal cual la dio la fábrica; se traduce rehaciendo la decisión
+    // con el mismo consumo de aquel momento.
+    const ultima = ultimaLinea[f.id] ? decidirFabrica(f, ultimaLinea[f.id].consumo, HOY, lang) : null
     return el('article', { class: 'agente' },
       el('div', { class: 'agente-cabeza' },
-        el('div', {}, el('h3', {}, f.nombre), el('p', { class: 'horario' }, `${f.horario} · id «${f.id}»`)),
+        el('div', {}, el('h3', {}, nombre), el('p', { class: 'horario' }, `${f.horario[lang]} · ${rellenar(t.idAgente, { id: f.id })}`)),
         el('span', { class: 'estado ' + etiqueta[1] }, etiqueta[0])),
-      medidor('Vueltas hoy', c.ejecucionesDia || 0, f.limites.ejecucionesDia),
-      medidor('Gasto del mes', c.gastoMes || 0, f.limites.gastoMes, euros),
+      medidor(t.vueltasHoy, c.ejecucionesDia || 0, f.limites.ejecucionesDia),
+      medidor(t.gastoMes, c.gastoMes || 0, f.limites.gastoMes, t.euros),
       el('div', { class: 'agente-acciones' }, sel,
-        el('button', { type: 'button', onclick: () => vuelta(f) }, 'Simular una vuelta')),
-      ultimaLinea[f.id] ? el('p', { class: 'linea' }, el('b', {}, `código ${ultimaLinea[f.id].codigo}`), ' · ', ultimaLinea[f.id].mensaje) : null)
+        el('button', { type: 'button', onclick: () => vuelta(f) }, t.simularVuelta)),
+      ultima ? el('p', { class: 'linea' }, el('b', {}, rellenar(t.codigo, { c: ultima.codigo })), ' · ', ultima.mensaje) : null)
   }))
 }
 
 // Una vuelta: comprobar la fábrica y, si puede trabajar, apuntar la ejecución y su coste.
 function vuelta(f) {
-  const d = decidirFabrica(f, consumo[f.id], HOY)
+  const antes = consumo[f.id]
+  const d = decidirFabrica(f, antes, HOY, lang)
   if (d.trabajar) {
-    const c = consumo[f.id] || {}
+    const c = antes || {}
     consumo[f.id] = { dia: HOY, ejecucionesDia: (c.ejecucionesDia || 0) + 1, mes: HOY.slice(0, 7), gastoMes: Math.round(((c.gastoMes || 0) + f.costeVuelta) * 100) / 100 }
   }
-  ultimaLinea[f.id] = d
+  ultimaLinea[f.id] = { consumo: antes }
   pintarPanel()
   if ($('peticion').value.trim() && $('agente').value === f.id) ejecutar()
 }
@@ -222,6 +269,7 @@ $('reiniciar').addEventListener('click', () => {
   if ($('peticion').value.trim()) ejecutar()
 })
 
+pintarTextos()
 pintarSelectorAgente()
 pintarPanel()
 // Si se llega con #p=<petición> (enlace compartido), se simula al cargar.
