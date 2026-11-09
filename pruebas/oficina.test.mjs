@@ -126,3 +126,12 @@ test('comprobar + apuntar sobre archivos de verdad', () => {
     assert.equal(comprobar('vigia', { rutaFabricas: join(dir, 'no-existe.json'), rutaConsumo, hoy }).codigo, 2)
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
+
+test('el esquema animado tiene los mismos textos en los dos idiomas', () => {
+  const claves = o => Object.keys(o).sort()
+  const { en, es } = { en: TEXTOS.en.flujo, es: TEXTOS.es.flujo }
+  assert.deepEqual(claves(en), claves(es))
+  assert.deepEqual(claves(en.m), claves(es.m))
+  assert.deepEqual(claves(en.nombres), claves(es.nombres))
+  for (const texto of [...Object.values(en.m), ...Object.values(es.m)]) assert.ok(texto.length > 0)
+})
